@@ -1,0 +1,124 @@
+@model SWSRechnung.Models.Angebot
+@using SWSRechnung.Models
+@{
+    bool isNew = Model.Id == 0;
+    ViewData["Title"] = isNew ? "Neues Angebot" : "Angebot bearbeiten";
+    var posList = Model.Positionen.OrderBy(p=>p.Position).ToList();
+}
+
+<div class="page-header">
+    <div>
+        <div class="page-header__sub"><a asp-controller="Home" asp-action="Index">Dashboard</a> › <a asp-action="Index">Angebote</a> › @ViewData["Title"]</div>
+        <div class="page-header__title"><i class="bi bi-file-earmark-plus"></i> @ViewData["Title"]</div>
+    </div>
+</div>
+
+<form asp-action="@(isNew?"Neu":"Bearbeiten")" method="post">
+    @Html.AntiForgeryToken()
+    <input type="hidden" asp-for="Id" />
+    <input type="hidden" asp-for="Angebotsnummer" />
+    <input type="hidden" asp-for="ErstelltAm" />
+
+    <div class="row g-3">
+        <!-- Left column -->
+        <div class="col-lg-8">
+            <div class="sws-card mb-3">
+                <div class="sws-card__head"><i class="bi bi-info-circle"></i> Angebotsdetails</div>
+                <div class="sws-card__body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label asp-for="KundeId" class="form-label">Kunde *</label>
+                            <select asp-for="KundeId" class="form-select" asp-items="ViewBag.Kunden" required>
+                                <option value="">– Bitte auswählen –</option>
+                            </select>
+                            <span asp-validation-for="KundeId" class="text-danger" style="font-size:.8rem;"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="Betreff" class="form-label"></label>
+                            <input asp-for="Betreff" class="form-control" placeholder="z. B. Softwareentwicklung Projekt XY" />
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="Angebotsdatum" class="form-label"></label>
+                            <input asp-for="Angebotsdatum" class="form-control" type="date" />
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="GueltigBis" class="form-label"></label>
+                            <input asp-for="GueltigBis" class="form-control" type="date" />
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="Status" class="form-label"></label>
+                            <select asp-for="Status" class="form-select" asp-items="Html.GetEnumSelectList<AngebotStatus>()"></select>
+                        </div>
+                        <div class="col-md-3">
+                            <label asp-for="MwStSatz" class="form-label"></label>
+                            <div class="input-group">
+                                <input asp-for="MwStSatz" class="form-control fw-mono" id="mwstField" type="number" step="0.01" min="0" max="100" />
+                                <span class="input-group-text">%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sws-card mb-3">
+                <div class="sws-card__head sws-card__head--light"><i class="bi bi-text-left"></i> Einleitung</div>
+                <div class="sws-card__body">
+                    <textarea asp-for="Einleitung" class="form-control" rows="3"></textarea>
+                </div>
+            </div>
+
+            <div class="sws-card mb-3">
+                <div class="sws-card__head sws-card__head--gruen"><i class="bi bi-list-ol"></i> Positionen</div>
+                <div class="sws-card__body">
+                    @{
+                        ViewData["FieldPrefix"] = "Positionen";
+                        ViewData["PosItems"] = posList
+                            .Select(p => SWSRechnung.Models.PosEditorItem.From(p))
+                            .ToList();
+                    }
+                    <partial name="_PosEditor" />
+                </div>
+            </div>
+
+            <div class="sws-card">
+                <div class="sws-card__head sws-card__head--light"><i class="bi bi-text-paragraph"></i> Schlusstext</div>
+                <div class="sws-card__body">
+                    <textarea asp-for="Schlusstext" class="form-control" rows="4"></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right column / sticky sidebar -->
+        <div class="col-lg-4">
+            <div class="sws-card mb-3" style="position:sticky;top:70px;">
+                <div class="sws-card__head"><i class="bi bi-calculator"></i> Summe</div>
+                <div class="p-0">
+                    <div class="summen-box">
+                        <div class="summen-row"><span>Nettobetrag</span><span class="fw-mono fw-bold" id="sumNetto">0,00 €</span></div>
+                        <div class="summen-row"><span>MwSt. (@Model.MwStSatz.ToString("F0") %)</span><span class="fw-mono" id="sumMwSt">0,00 €</span></div>
+                        <div class="summen-row summen-row--total"><span>Gesamtbetrag</span><span class="fw-mono" id="sumBrutto">0,00 €</span></div>
+                    </div>
+                </div>
+                <div class="sws-card__body">
+                    <div class="mb-3">
+                        <label asp-for="Notizen" class="form-label">Interne Notizen</label>
+                        <textarea asp-for="Notizen" class="form-control" rows="3" placeholder="Nur intern sichtbar …"></textarea>
+                    </div>
+                    <div class="d-flex flex-column gap-2">
+                        <button type="submit" class="btn-sws btn-sws--lg w-100">
+                            <i class="bi bi-check-lg"></i> @(isNew ? "Angebot erstellen" : "Speichern")
+                        </button>
+                        <a asp-action="@(isNew?"Index":"Details")" asp-route-id="@(isNew?(object?)null:Model.Id)" class="btn-sws btn-sws--outline w-100">
+                            <i class="bi bi-x"></i> Abbrechen
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>document.addEventListener('DOMContentLoaded', calcAllSums);</script>
+}

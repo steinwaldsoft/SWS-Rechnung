@@ -1,0 +1,185 @@
+@model SWSRechnung.Models.Rechnung
+@using SWSRechnung.Models
+@{
+    ViewData["Title"] = Model.Rechnungsnummer;
+    string SB(string s) => s switch {
+        "Entwurf"=>"<span class='badge badge--entwurf'>Entwurf</span>",
+        "Versendet"=>"<span class='badge badge--versendet'>Versendet</span>",
+        "Bezahlt"=>"<span class='badge badge--bezahlt'>Bezahlt</span>",
+        "Storniert"=>"<span class='badge badge--storniert'>Storniert</span>",
+        "Ueberfaellig"=>"<span class='badge badge--ueberfaellig'>Überfällig</span>",
+        _=>$"<span class='badge badge--entwurf'>{s}</span>"
+    };
+}
+
+<div class="page-header">
+    <div>
+        <div class="page-header__sub"><a asp-controller="Home" asp-action="Index">Dashboard</a> › <a asp-action="Index">Rechnungen</a> › @Model.Rechnungsnummer</div>
+        <div class="page-header__title">
+            <i class="bi bi-receipt"></i> @Model.Rechnungsnummer
+            @Html.Raw(SB(Model.Status.ToString()))
+            @if (Model.IstUeberfaellig) { <span class="badge badge--ueberfaellig ms-1">⚠ Überfällig</span> }
+        </div>
+        @if (!string.IsNullOrEmpty(Model.Betreff)) { <div class="page-header__sub">@Model.Betreff</div> }
+    </div>
+    <div class="page-header__actions">
+        <div class="btn-group" style="display:inline-flex;gap:.25rem;flex-wrap:wrap;">
+            <a asp-action="Word"       asp-route-id="@Model.Id" class="btn-sws btn-sws--sm" style="background:#2B579A;" target="_blank" title="Word-Dokument (.docx)"><i class="bi bi-file-earmark-word"></i> Word</a>
+            <a asp-action="Zugferd"    asp-route-id="@Model.Id" class="btn-sws btn-sws--sm" style="background:#7b2d8b;" target="_blank" title="ZUGFeRD 2.3 – PDF mit eingebettetem E-Rechnungs-XML"><i class="bi bi-file-earmark-zip"></i> ZUGFeRD</a>
+            <a asp-action="XRechnung"  asp-route-id="@Model.Id" class="btn-sws btn-sws--sm" style="background:#1a6b3c;" target="_blank" title="XRechnung 3.x – reines CII XML"><i class="bi bi-filetype-xml"></i> XRechnung</a>
+        </div>
+        <a asp-action="Bearbeiten" asp-route-id="@Model.Id" class="btn-sws btn-sws--outline btn-sws--sm"><i class="bi bi-pencil"></i> Bearbeiten</a>
+        @if (Model.Status != RechnungStatus.Bezahlt && Model.Status != RechnungStatus.Storniert)
+        {
+            <form asp-action="AlsBezahlt" asp-route-id="@Model.Id" method="post" style="display:inline;">
+                @Html.AntiForgeryToken()
+                <button class="btn-sws btn-sws--gruen btn-sws--sm" onclick="return confirmAct('Rechnung als bezahlt markieren?')">
+                    <i class="bi bi-check-circle"></i> Als bezahlt
+                </button>
+            </form>
+        }
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-8">
+        <div class="sws-card mb-3">
+            <div class="sws-card__head sws-card__head--light"><i class="bi bi-building"></i> Rechnungsempfänger</div>
+            <div class="sws-card__body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <strong>@Model.Kunde?.Firmenname</strong><br/>
+                        @if (!string.IsNullOrEmpty(Model.Kunde?.Ansprechpartner)) { <span>@Model.Kunde.Anrede @Model.Kunde.Ansprechpartner<br/></span> }
+                        @if (!string.IsNullOrEmpty(Model.Kunde?.Strasse)) { <span>@Model.Kunde.Strasse<br/></span> }
+                        @Model.Kunde?.PLZ @Model.Kunde?.Ort
+                    </div>
+                    <div class="col-md-6 mt-3 mt-md-0">
+                        <table style="width:100%;font-size:.875rem;border-spacing:0 4px;border-collapse:separate;">
+                            <tr><td class="text-muted pe-3">Rechnungsdatum</td><td class="fw-bold">@Model.Rechnungsdatum.ToString("dd.MM.yyyy")</td></tr>
+                            @if (Model.FaelligAm.HasValue) {
+                                <tr><td class="text-muted pe-3">Zahlbar bis</td><td class="fw-bold @(Model.IstUeberfaellig?"text-danger":"")">@Model.FaelligAm.Value.ToString("dd.MM.yyyy")</td></tr>
+                            }
+                            @if (Model.BezahltAm.HasValue) {
+                                <tr><td class="text-muted pe-3">Bezahlt am</td><td class="fw-bold" style="color:var(--gruen-dk);">@Model.BezahltAm.Value.ToString("dd.MM.yyyy")</td></tr>
+                            }
+                            @if (Model.LeistungVon.HasValue) {
+                                <tr><td class="text-muted pe-3">Leistung</td><td>@Model.LeistungVon.Value.ToString("dd.MM.yyyy") – @Model.LeistungBis?.ToString("dd.MM.yyyy")</td></tr>
+                            }
+                            @if (!string.IsNullOrEmpty(Model.Kunde?.Kundennummer)) {
+                                <tr><td class="text-muted pe-3">Kundennr.</td><td class="fw-mono">@Model.Kunde.Kundennummer</td></tr>
+                            }
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @if (!string.IsNullOrEmpty(Model.Einleitung)) {
+        <div class="sws-card mb-3">
+            <div class="sws-card__body" style="white-space:pre-line;font-size:.9rem;">@Model.Einleitung</div>
+        </div>
+        }
+
+        <div class="sws-card mb-3">
+            <div class="sws-card__head sws-card__head--gruen"><i class="bi bi-list-ol"></i> Positionen</div>
+            <div class="table-responsive">
+                <table class="sws-table">
+                    <thead><tr>
+                        <th style="width:40px;">Pos.</th><th>Bezeichnung</th><th class="text-end">Menge</th><th>Einh.</th>
+                        <th class="text-end">Einzelpr.</th><th class="text-end">Rabatt</th><th class="text-end">Gesamt</th>
+                    </tr></thead>
+                    <tbody>
+                    @foreach (var p in Model.Positionen.OrderBy(p=>p.Position))
+                    {
+                        <tr>
+                            <td class="text-center text-muted">@p.Position</td>
+                            <td>
+                                <div class="fw-bold">@p.Bezeichnung</div>
+                                @if (!string.IsNullOrEmpty(p.Beschreibung)) { <div class="text-muted" style="font-size:.8rem;">@p.Beschreibung</div> }
+                            </td>
+                            <td class="text-end fw-mono">@p.Menge.ToString("N3")</td>
+                            <td>@p.Einheit</td>
+                            <td class="text-end fw-mono">@p.Einzelpreis.ToString("C")</td>
+                            <td class="text-end text-muted">@(p.Rabatt>0?p.Rabatt.ToString("N2")+"%":"–")</td>
+                            <td class="text-end fw-mono fw-bold">@p.Gesamtpreis.ToString("C")</td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        @if (!string.IsNullOrEmpty(Model.Schlusstext)) {
+        <div class="sws-card">
+            <div class="sws-card__body" style="white-space:pre-line;font-size:.875rem;">@Model.Schlusstext</div>
+        </div>
+        }
+    </div>
+
+    <div class="col-lg-4">
+        <div class="sws-card mb-3">
+            <div class="sws-card__head sws-card__head--gruen"><i class="bi bi-calculator"></i> Betragsübersicht</div>
+            <div class="p-0">
+                <div class="summen-box">
+                    <div class="summen-row"><span>Nettobetrag</span><span class="fw-mono fw-bold">@Model.Nettobetrag.ToString("C")</span></div>
+                    <div class="summen-row"><span>MwSt. (@Model.MwStSatz.ToString("F0") %)</span><span class="fw-mono">@Model.MwStBetrag.ToString("C")</span></div>
+                    <div class="summen-row summen-row--total"><span>Gesamtbetrag</span><span class="fw-mono">@Model.Bruttobetrag.ToString("C")</span></div>
+                </div>
+            </div>
+        </div>
+
+        @if (Model.Angebot != null) {
+        <div class="sws-card mb-3">
+            <div class="sws-card__head sws-card__head--light"><i class="bi bi-link-45deg"></i> Aus Angebot</div>
+            <div class="sws-card__body">
+                <a asp-controller="Angebote" asp-action="Details" asp-route-id="@Model.AngebotId" class="btn-sws btn-sws--outline btn-sws--sm w-100">
+                    <i class="bi bi-file-earmark-text"></i> @Model.Angebot.Angebotsnummer
+                </a>
+            </div>
+        </div>
+        }
+
+        <div class="sws-card mb-3">
+            <div class="sws-card__head sws-card__head--light"><i class="bi bi-arrow-repeat"></i> Status ändern</div>
+            <div class="sws-card__body">
+                <form asp-action="StatusAendern" asp-route-id="@Model.Id" method="post">
+                    @Html.AntiForgeryToken()
+                    <select name="status" class="form-select form-select-sm mb-2">
+                        @foreach (RechnungStatus s in Enum.GetValues(typeof(RechnungStatus)))
+                        {
+                            string label = s == RechnungStatus.Ueberfaellig ? "Überfällig" : s.ToString();
+                            if (Model.Status == s)
+                            { <option value="@((int)s)" selected>@label</option> }
+                            else
+                            { <option value="@((int)s)">@label</option> }
+                        }
+                    </select>
+                    <button type="submit" class="btn-sws btn-sws--sm w-100">Status setzen</button>
+                </form>
+            </div>
+        </div>
+
+        @if (!string.IsNullOrEmpty(Model.Notizen)) {
+        <div class="sws-card mb-3">
+            <div class="sws-card__head sws-card__head--light"><i class="bi bi-sticky"></i> Interne Notizen</div>
+            <div class="sws-card__body" style="font-size:.875rem;white-space:pre-line;">@Model.Notizen</div>
+        </div>
+        }
+
+        <div class="sws-card">
+            <div class="sws-card__head sws-card__head--light"><i class="bi bi-gear"></i> Aktionen</div>
+            <div class="sws-card__body d-flex flex-column gap-2">
+                @if (Model.Status != RechnungStatus.Storniert) {
+                    <form asp-action="Stornieren" asp-route-id="@Model.Id" method="post" onsubmit="return confirmAct('Rechnung stornieren?')">
+                        @Html.AntiForgeryToken()
+                        <button class="btn-sws btn-sws--sm w-100" style="background:#e67e22;" type="submit"><i class="bi bi-slash-circle"></i> Stornieren</button>
+                    </form>
+                }
+                <form asp-action="Loeschen" asp-route-id="@Model.Id" method="post" onsubmit="return confirmDel('@Model.Rechnungsnummer')">
+                    @Html.AntiForgeryToken()
+                    <button class="btn-sws btn-sws--sm w-100" style="background:#e74c3c;" type="submit"><i class="bi bi-trash"></i> Löschen</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

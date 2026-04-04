@@ -1,0 +1,67 @@
+@model IEnumerable<SWSRechnung.Models.Kunde>
+@{ ViewData["Title"] = "Kunden"; }
+
+<div class="page-header">
+    <div>
+        <div class="page-header__sub"><a asp-controller="Home" asp-action="Index">Dashboard</a> › Kunden</div>
+        <div class="page-header__title"><i class="bi bi-people"></i> Kundenverwaltung</div>
+    </div>
+    <a asp-action="Neu" class="btn-sws"><i class="bi bi-person-plus"></i> Neuer Kunde</a>
+</div>
+
+<div class="filter-bar">
+    <form method="get" class="row g-2 align-items-end">
+        <div class="col-md-5">
+            <label class="form-label">Suche</label>
+            <input type="text" name="q" class="form-control" placeholder="Firmenname, Ansprechpartner, E-Mail, Ort …" value="@ViewBag.Q" />
+        </div>
+        <div class="col-md-3 d-flex align-items-center pt-4">
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="nurAktiv" value="true" id="chkAktiv" @(ViewBag.NurAktiv==true?"checked":"") />
+                <label class="form-check-label" for="chkAktiv" style="font-size:.875rem;">Nur aktive Kunden</label>
+            </div>
+        </div>
+        <div class="col-md-4 d-flex gap-2">
+            <button type="submit" class="btn-sws btn-sws--sm flex-grow-1"><i class="bi bi-search"></i> Suchen</button>
+            <a asp-action="Index" class="btn-sws btn-sws--outline btn-sws--sm"><i class="bi bi-x"></i></a>
+        </div>
+    </form>
+</div>
+
+<div class="sws-card">
+    <div class="sws-card__head"><i class="bi bi-people"></i> @Model.Count() Kunden</div>
+    @if (!Model.Any())
+    {
+        <div class="empty-state"><i class="bi bi-people"></i>Keine Kunden gefunden.<br/><a asp-action="Neu" class="btn-sws mt-3">Ersten Kunden anlegen</a></div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="sws-table">
+                <thead><tr>
+                    <th>Kundennr.</th><th>Firmenname</th><th>Ansprechpartner</th><th>Ort</th><th>Kontakt</th><th>Status</th><th class="text-end">Aktionen</th>
+                </tr></thead>
+                <tbody>
+                @foreach (var k in Model)
+                {
+                    <tr>
+                        <td class="fw-mono text-muted" style="font-size:.8rem;">@k.Kundennummer</td>
+                        <td><a asp-action="Details" asp-route-id="@k.Id" style="color:var(--blau);font-weight:600;text-decoration:none;">@k.Firmenname</a></td>
+                        <td class="text-muted">@k.Ansprechpartner</td>
+                        <td class="text-muted" style="font-size:.83rem;">@k.PLZ @k.Ort</td>
+                        <td style="font-size:.83rem;">
+                            @if (!string.IsNullOrEmpty(k.Telefon)) { <div><i class="bi bi-telephone text-muted"></i> @k.Telefon</div> }
+                            @if (!string.IsNullOrEmpty(k.Email))   { <div><i class="bi bi-envelope text-muted"></i> <a href="mailto:@k.Email" style="text-decoration:none;">@k.Email</a></div> }
+                        </td>
+                        <td>@Html.Raw(k.Aktiv ? "<span class='badge badge--aktiv'>Aktiv</span>" : "<span class='badge badge--inaktiv'>Inaktiv</span>")</td>
+                        <td class="text-end">
+                            <a asp-action="Details"    asp-route-id="@k.Id" class="btn-sws btn-sws--outline btn-sws--sm" title="Details"><i class="bi bi-eye"></i></a>
+                            <a asp-action="Bearbeiten" asp-route-id="@k.Id" class="btn-sws btn-sws--sm ms-1" style="background:var(--silber);color:#333;" title="Bearbeiten"><i class="bi bi-pencil"></i></a>
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

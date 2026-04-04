@@ -1,0 +1,92 @@
+@model IEnumerable<SWSRechnung.Models.Angebot>
+@using SWSRechnung.Models
+@{
+    ViewData["Title"] = "Angebote";
+    string SB(string s) => s switch {
+        "Entwurf"=>"<span class='badge badge--entwurf'>Entwurf</span>",
+        "Versendet"=>"<span class='badge badge--versendet'>Versendet</span>",
+        "Angenommen"=>"<span class='badge badge--angenommen'>Angenommen</span>",
+        "Abgelehnt"=>"<span class='badge badge--abgelehnt'>Abgelehnt</span>",
+        "Abgelaufen"=>"<span class='badge badge--abgelaufen'>Abgelaufen</span>",
+        _=>$"<span class='badge badge--entwurf'>{s}</span>"
+    };
+}
+
+<div class="page-header">
+    <div>
+        <div class="page-header__sub"><a asp-controller="Home" asp-action="Index">Dashboard</a> › Angebote</div>
+        <div class="page-header__title"><i class="bi bi-file-earmark-text"></i> Angebote</div>
+    </div>
+    <a asp-action="Neu" class="btn-sws"><i class="bi bi-file-earmark-plus"></i> Neues Angebot</a>
+</div>
+
+<div class="filter-bar">
+    <form method="get" class="row g-2 align-items-end">
+        <div class="col-md-4">
+            <label class="form-label">Suche</label>
+            <input type="text" name="q" class="form-control" placeholder="Nummer, Betreff, Kunde …" value="@ViewBag.Q" />
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Status</label>
+            <select name="status" class="form-select">
+                <option value="">Alle Status</option>
+                @foreach (AngebotStatus s in Enum.GetValues(typeof(AngebotStatus)))
+                {
+                    if ((int?)ViewBag.StatusFilter == (int)s)
+                    { <option value="@((int)s)" selected>@s</option> }
+                    else
+                    { <option value="@((int)s)">@s</option> }
+                }
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Kunde</label>
+            <select name="kundeId" class="form-select" asp-items="ViewBag.Kunden">
+                <option value="">Alle Kunden</option>
+            </select>
+        </div>
+        <div class="col-md-2 d-flex gap-2">
+            <button type="submit" class="btn-sws btn-sws--sm flex-grow-1"><i class="bi bi-search"></i></button>
+            <a asp-action="Index" class="btn-sws btn-sws--outline btn-sws--sm"><i class="bi bi-x"></i></a>
+        </div>
+    </form>
+</div>
+
+<div class="sws-card">
+    <div class="sws-card__head">
+        <i class="bi bi-file-earmark-text"></i> @Model.Count() Angebote
+        <span class="ms-auto" style="font-size:.82rem;opacity:.9;">Volumen: @Model.Sum(a=>a.Bruttobetrag).ToString("C")</span>
+    </div>
+    @if (!Model.Any()) {
+        <div class="empty-state"><i class="bi bi-file-earmark-text"></i>Keine Angebote gefunden.<br/><a asp-action="Neu" class="btn-sws mt-3">Angebot erstellen</a></div>
+    } else {
+        <div class="table-responsive">
+            <table class="sws-table">
+                <thead><tr>
+                    <th>Nummer</th><th>Kunde</th><th>Betreff</th><th>Datum</th><th>Gültig bis</th><th class="text-end">Brutto</th><th>Status</th><th class="text-end">Aktionen</th>
+                </tr></thead>
+                <tbody>
+                @foreach (var a in Model)
+                {
+                    bool abgelaufen = a.GueltigBis.HasValue && a.GueltigBis.Value < DateTime.Today && a.Status == AngebotStatus.Versendet;
+                    <tr>
+                        <td class="fw-mono fw-bold text-blau">
+                            <a asp-action="Details" asp-route-id="@a.Id" style="color:var(--blau);text-decoration:none;">@a.Angebotsnummer</a>
+                        </td>
+                        <td>@a.Kunde?.Firmenname</td>
+                        <td class="text-muted" style="font-size:.83rem;">@a.Betreff</td>
+                        <td style="font-size:.83rem;white-space:nowrap;">@a.Angebotsdatum.ToString("dd.MM.yyyy")</td>
+                        <td style="font-size:.83rem;" class="@(abgelaufen?"text-danger fw-bold":"text-muted")">@a.GueltigBis?.ToString("dd.MM.yyyy")</td>
+                        <td class="text-end fw-mono fw-bold">@a.Bruttobetrag.ToString("C")</td>
+                        <td>@Html.Raw(SB(a.Status.ToString()))</td>
+                        <td class="text-end" style="white-space:nowrap;">
+                            <a asp-action="Details" asp-route-id="@a.Id" class="btn-sws btn-sws--outline btn-sws--sm" title="Details"><i class="bi bi-eye"></i></a>
+                            <a asp-action="Word"    asp-route-id="@a.Id" class="btn-sws btn-sws--sm ms-1" style="background:#2B579A;" title="Word (.docx)" target="_blank"><i class="bi bi-file-earmark-word"></i></a>
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

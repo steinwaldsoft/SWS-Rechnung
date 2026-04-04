@@ -1,0 +1,145 @@
+@model Dictionary<string,string>
+@{
+    ViewData["Title"] = "Einstellungen";
+    string G(string k) => Model.TryGetValue(k, out var v) ? v : "";
+}
+
+<div class="page-header">
+    <div>
+        <div class="page-header__sub"><a asp-action="Index">Dashboard</a> › Einstellungen</div>
+        <div class="page-header__title"><i class="bi bi-gear-fill"></i> Einstellungen</div>
+    </div>
+</div>
+
+<form asp-action="Einstellungen" method="post">
+    @Html.AntiForgeryToken()
+
+    <div class="row g-3">
+        <div class="col-lg-6">
+            <div class="sws-card mb-3">
+                <div class="sws-card__head"><i class="bi bi-building"></i> Firmendaten</div>
+                <div class="sws-card__body">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label">Firmenname</label>
+                            <input class="form-control" name="einstellungen[FirmaName]" value="@G("FirmaName")" />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Straße</label>
+                            <input class="form-control" name="einstellungen[FirmaStrasse]" value="@G("FirmaStrasse")" />
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label">PLZ</label>
+                            <input class="form-control" name="einstellungen[FirmaPLZ]" value="@G("FirmaPLZ")" />
+                        </div>
+                        <div class="col-8">
+                            <label class="form-label">Ort</label>
+                            <input class="form-control" name="einstellungen[FirmaOrt]" value="@G("FirmaOrt")" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Telefon</label>
+                            <input class="form-control" name="einstellungen[FirmaTelefon]" value="@G("FirmaTelefon")" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">E-Mail</label>
+                            <input class="form-control" type="email" name="einstellungen[FirmaEmail]" value="@G("FirmaEmail")" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Website</label>
+                            <input class="form-control" name="einstellungen[FirmaWebsite]" value="@G("FirmaWebsite")" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">USt-IdNr.</label>
+                            <input class="form-control" name="einstellungen[FirmaUstId]" value="@G("FirmaUstId")" />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Registergericht</label>
+                            <input class="form-control" name="einstellungen[FirmaRegistergericht]" value="@G("FirmaRegistergericht")" />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Handelsregister</label>
+                            <input class="form-control" name="einstellungen[FirmaHandelsregister]" value="@G("FirmaHandelsregister")" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sws-card mb-3">
+                <div class="sws-card__head sws-card__head--light"><i class="bi bi-bank"></i> Bankverbindung</div>
+                <div class="sws-card__body">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label">Bankname</label>
+                            <input class="form-control" name="einstellungen[BankName]" value="@G("BankName")" />
+                        </div>
+                        <div class="col-7">
+                            <label class="form-label">IBAN</label>
+                            <input class="form-control fw-mono" name="einstellungen[BankIBAN]" value="@G("BankIBAN")" />
+                        </div>
+                        <div class="col-5">
+                            <label class="form-label">BIC</label>
+                            <input class="form-control fw-mono" name="einstellungen[BankBIC]" value="@G("BankBIC")" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="sws-card mb-3">
+                <div class="sws-card__head sws-card__head--light"><i class="bi bi-hash"></i> Nummernkreise</div>
+                <div class="sws-card__body">
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <label class="form-label">Angebots-Präfix</label>
+                            <input class="form-control fw-mono" name="einstellungen[AngebotPrefix]" value="@G("AngebotPrefix")" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Nächste Angebotsnr.</label>
+                            <input class="form-control fw-mono" type="number" min="1" name="einstellungen[AngebotNaechsteNr]" value="@G("AngebotNaechsteNr")" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Rechnungs-Präfix</label>
+                            <input class="form-control fw-mono" name="einstellungen[RechnungPrefix]" value="@G("RechnungPrefix")" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Nächste Rechnungsnr.</label>
+                            <input class="form-control fw-mono" type="number" min="1" name="einstellungen[RechnungNaechsteNr]" value="@G("RechnungNaechsteNr")" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Standard-Zahlungsziel (Tage)</label>
+                            <input class="form-control" type="number" min="0" name="einstellungen[Zahlungsziel]" value="@G("Zahlungsziel")" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sws-card mb-3">
+                <div class="sws-card__head sws-card__head--light"><i class="bi bi-chat-quote"></i> Standardtexte</div>
+                <div class="sws-card__body">
+                    <div class="mb-3">
+                        <label class="form-label">Angebot – Einleitung</label>
+                        <textarea class="form-control" rows="3" name="einstellungen[AngebotEinleitung]">@G("AngebotEinleitung")</textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Angebot – Schlusstext</label>
+                        <textarea class="form-control" rows="4" name="einstellungen[AngebotSchlusstext]">@G("AngebotSchlusstext")</textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Rechnung – Einleitung</label>
+                        <textarea class="form-control" rows="3" name="einstellungen[RechnungEinleitung]">@G("RechnungEinleitung")</textarea>
+                    </div>
+                    <div>
+                        <label class="form-label">Rechnung – Schlusstext</label>
+                        <textarea class="form-control" rows="4" name="einstellungen[RechnungSchlusstext]">@G("RechnungSchlusstext")</textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex justify-content-end gap-2 mb-4">
+        <a asp-action="Index" class="btn-sws btn-sws--outline">Abbrechen</a>
+        <button type="submit" class="btn-sws btn-sws--lg"><i class="bi bi-check-lg"></i> Einstellungen speichern</button>
+    </div>
+</form>

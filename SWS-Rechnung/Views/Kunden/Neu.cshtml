@@ -1,0 +1,130 @@
+@model SWSRechnung.Models.Kunde
+@{
+    bool isNew = Model.Id == 0;
+    ViewData["Title"] = isNew ? "Neuer Kunde" : "Kunde bearbeiten";
+}
+
+<div class="page-header">
+    <div>
+        <div class="page-header__sub"><a asp-controller="Home" asp-action="Index">Dashboard</a> › <a asp-action="Index">Kunden</a> › @ViewData["Title"]</div>
+        <div class="page-header__title"><i class="bi bi-@(isNew?"person-plus":"pencil")"></i> @ViewData["Title"]</div>
+    </div>
+</div>
+
+<form asp-action="@(isNew?"Neu":"Bearbeiten")" method="post">
+    @Html.AntiForgeryToken()
+    <input type="hidden" asp-for="Id" />
+    <input type="hidden" asp-for="Kundennummer" />
+    <input type="hidden" asp-for="ErstelltAm" />
+
+    <div class="row g-3">
+        <div class="col-lg-8">
+            <div class="sws-card mb-3">
+                <div class="sws-card__head"><i class="bi bi-building"></i> Firmendaten</div>
+                <div class="sws-card__body">
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label asp-for="Firmenname" class="form-label"></label>
+                            <input asp-for="Firmenname" class="form-control" placeholder="Muster GmbH" />
+                            <span asp-validation-for="Firmenname" class="text-danger" style="font-size:.8rem;"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Kundennummer</label>
+                            <input class="form-control" value="@(isNew ? "Automatisch" : Model.Kundennummer)" disabled style="background:var(--silber-lt);" />
+                        </div>
+                        <div class="col-md-3">
+                            <label asp-for="Anrede" class="form-label"></label>
+                            <select asp-for="Anrede" class="form-select">
+                                <option value="">–</option>
+                                <option>Herr</option>
+                                <option>Frau</option>
+                                <option>Divers</option>
+                            </select>
+                        </div>
+                        <div class="col-md-9">
+                            <label asp-for="Ansprechpartner" class="form-label"></label>
+                            <input asp-for="Ansprechpartner" class="form-control" placeholder="Max Mustermann" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sws-card mb-3">
+                <div class="sws-card__head sws-card__head--light"><i class="bi bi-geo-alt"></i> Adresse</div>
+                <div class="sws-card__body">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label asp-for="Strasse" class="form-label"></label>
+                            <input asp-for="Strasse" class="form-control" placeholder="Hauptstraße 1" />
+                        </div>
+                        <div class="col-3">
+                            <label asp-for="PLZ" class="form-label"></label>
+                            <input asp-for="PLZ" class="form-control" placeholder="12345" />
+                        </div>
+                        <div class="col-5">
+                            <label asp-for="Ort" class="form-label"></label>
+                            <input asp-for="Ort" class="form-control" placeholder="Musterstadt" />
+                        </div>
+                        <div class="col-4">
+                            <label asp-for="Land" class="form-label"></label>
+                            <input asp-for="Land" class="form-control" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sws-card">
+                <div class="sws-card__head sws-card__head--light"><i class="bi bi-telephone"></i> Kontakt &amp; Sonstiges</div>
+                <div class="sws-card__body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label asp-for="Telefon" class="form-label"></label>
+                            <input asp-for="Telefon" class="form-control" placeholder="+49 (0) 123 456 789" />
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="Email" class="form-label"></label>
+                            <input asp-for="Email" type="email" class="form-control" placeholder="info@firma.de" />
+                            <span asp-validation-for="Email" class="text-danger" style="font-size:.8rem;"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="Website" class="form-label"></label>
+                            <input asp-for="Website" class="form-control" placeholder="www.firma.de" />
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="UstIdNr" class="form-label"></label>
+                            <input asp-for="UstIdNr" class="form-control fw-mono" placeholder="DE123456789" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="sws-card mb-3">
+                <div class="sws-card__head sws-card__head--light"><i class="bi bi-sticky"></i> Notizen</div>
+                <div class="sws-card__body">
+                    <textarea asp-for="Notizen" class="form-control" rows="6" placeholder="Interne Notizen…"></textarea>
+                </div>
+            </div>
+            <div class="sws-card mb-3">
+                <div class="sws-card__head sws-card__head--light"><i class="bi bi-toggle-on"></i> Status</div>
+                <div class="sws-card__body">
+                    <div class="form-check form-switch">
+                        <input asp-for="Aktiv" class="form-check-input" type="checkbox" role="switch" />
+                        <label asp-for="Aktiv" class="form-check-label">Aktiver Kunde</label>
+                    </div>
+                </div>
+            </div>
+            <div class="d-flex flex-column gap-2">
+                <button type="submit" class="btn-sws btn-sws--lg w-100">
+                    <i class="bi bi-check-lg"></i> @(isNew ? "Kunde anlegen" : "Änderungen speichern")
+                </button>
+                <a asp-action="@(isNew?"Index":"Details")" asp-route-id="@(isNew?(object?)null:Model.Id)" class="btn-sws btn-sws--outline w-100">
+                    <i class="bi bi-x"></i> Abbrechen
+                </a>
+            </div>
+        </div>
+    </div>
+</form>
+
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

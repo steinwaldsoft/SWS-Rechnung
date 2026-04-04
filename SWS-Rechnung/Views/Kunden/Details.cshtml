@@ -1,0 +1,160 @@
+@model SWSRechnung.Models.Kunde
+@using SWSRechnung.Models
+@{
+    ViewData["Title"] = Model.Firmenname;
+    string RBadge(string s) => s switch {
+        "Bezahlt"=>"<span class='badge badge--bezahlt'>Bezahlt</span>",
+        "Versendet"=>"<span class='badge badge--versendet'>Versendet</span>",
+        "Storniert"=>"<span class='badge badge--storniert'>Storniert</span>",
+        "Ueberfaellig"=>"<span class='badge badge--ueberfaellig'>Überfällig</span>",
+        "Entwurf"=>"<span class='badge badge--entwurf'>Entwurf</span>",
+        _=>$"<span class='badge badge--entwurf'>{s}</span>"
+    };
+    string ABadge(string s) => s switch {
+        "Angenommen"=>"<span class='badge badge--angenommen'>Angenommen</span>",
+        "Versendet"=>"<span class='badge badge--versendet'>Versendet</span>",
+        "Abgelehnt"=>"<span class='badge badge--abgelehnt'>Abgelehnt</span>",
+        "Abgelaufen"=>"<span class='badge badge--abgelaufen'>Abgelaufen</span>",
+        "Entwurf"=>"<span class='badge badge--entwurf'>Entwurf</span>",
+        _=>$"<span class='badge badge--entwurf'>{s}</span>"
+    };
+}
+
+<div class="page-header">
+    <div>
+        <div class="page-header__sub"><a asp-controller="Home" asp-action="Index">Dashboard</a> › <a asp-action="Index">Kunden</a> › @Model.Firmenname</div>
+        <div class="page-header__title">
+            <i class="bi bi-building"></i> @Model.Firmenname
+            @Html.Raw(Model.Aktiv ? "<span class='badge badge--aktiv ms-2'>Aktiv</span>" : "<span class='badge badge--inaktiv ms-2'>Inaktiv</span>")
+        </div>
+    </div>
+    <div class="page-header__actions">
+        <a asp-action="Bearbeiten" asp-route-id="@Model.Id" class="btn-sws btn-sws--outline btn-sws--sm"><i class="bi bi-pencil"></i> Bearbeiten</a>
+        <a asp-controller="Angebote"  asp-action="Neu" asp-route-kundeId="@Model.Id" class="btn-sws btn-sws--sm"><i class="bi bi-file-earmark-plus"></i> Angebot</a>
+        <a asp-controller="Rechnungen"asp-action="Neu" asp-route-kundeId="@Model.Id" class="btn-sws btn-sws--gruen btn-sws--sm"><i class="bi bi-receipt"></i> Rechnung</a>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-md-4 col-lg-3">
+        <div class="sws-card mb-3">
+            <div class="sws-card__head"><i class="bi bi-person-vcard"></i> Stammdaten</div>
+            <div class="sws-card__body">
+                <table style="width:100%;font-size:.875rem;border-spacing:0 5px;border-collapse:separate;">
+                    @if (!string.IsNullOrEmpty(Model.Kundennummer)) {
+                        <tr><td class="text-muted pe-2">Kundennr.</td><td class="fw-mono fw-bold">@Model.Kundennummer</td></tr>
+                    }
+                    @if (!string.IsNullOrEmpty(Model.Ansprechpartner)) {
+                        <tr><td class="text-muted pe-2">Kontakt</td><td>@Model.Anrede @Model.Ansprechpartner</td></tr>
+                    }
+                    @if (!string.IsNullOrEmpty(Model.Strasse)) {
+                        <tr><td class="text-muted pe-2">Adresse</td><td>@Model.Strasse<br/>@Model.PLZ @Model.Ort<br/>@(Model.Land != "Deutschland" ? Model.Land : "")</td></tr>
+                    }
+                    @if (!string.IsNullOrEmpty(Model.Telefon)) {
+                        <tr><td class="text-muted pe-2">Tel.</td><td><a href="tel:@Model.Telefon" style="text-decoration:none;">@Model.Telefon</a></td></tr>
+                    }
+                    @if (!string.IsNullOrEmpty(Model.Email)) {
+                        <tr><td class="text-muted pe-2">E-Mail</td><td><a href="mailto:@Model.Email" style="text-decoration:none;">@Model.Email</a></td></tr>
+                    }
+                    @if (!string.IsNullOrEmpty(Model.Website)) {
+                        <tr><td class="text-muted pe-2">Web</td><td><a href="https://@Model.Website.TrimStart('h','t','p','s',':','/')" target="_blank" style="text-decoration:none;">@Model.Website</a></td></tr>
+                    }
+                    @if (!string.IsNullOrEmpty(Model.UstIdNr)) {
+                        <tr><td class="text-muted pe-2">USt-ID</td><td class="fw-mono">@Model.UstIdNr</td></tr>
+                    }
+                    <tr><td class="text-muted pe-2">Seit</td><td>@Model.ErstelltAm.ToString("dd.MM.yyyy")</td></tr>
+                </table>
+            </div>
+        </div>
+
+        @if (!string.IsNullOrEmpty(Model.Notizen)) {
+        <div class="sws-card mb-3">
+            <div class="sws-card__head sws-card__head--light"><i class="bi bi-sticky"></i> Notizen</div>
+            <div class="sws-card__body" style="font-size:.875rem;white-space:pre-line;">@Model.Notizen</div>
+        </div>
+        }
+
+        <div class="sws-card">
+            <div class="sws-card__head sws-card__head--light"><i class="bi bi-gear"></i> Aktionen</div>
+            <div class="sws-card__body d-flex flex-column gap-2">
+                <form asp-action="StatusToggle" asp-route-id="@Model.Id" method="post">
+                    @Html.AntiForgeryToken()
+                    <button class="btn-sws btn-sws--outline btn-sws--sm w-100" type="submit">
+                        <i class="bi bi-toggle-@(Model.Aktiv?"on":"off")"></i>
+                        @(Model.Aktiv ? "Auf inaktiv setzen" : "Aktivieren")
+                    </button>
+                </form>
+                <form asp-action="Loeschen" asp-route-id="@Model.Id" method="post" onsubmit="return confirmDel('@Model.Firmenname')">
+                    @Html.AntiForgeryToken()
+                    <button class="btn-sws btn-sws--sm w-100" style="background:#e74c3c;" type="submit">
+                        <i class="bi bi-trash"></i> Löschen
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-8 col-lg-9">
+        <!-- Angebote -->
+        <div class="sws-card mb-3">
+            <div class="sws-card__head">
+                <i class="bi bi-file-earmark-text"></i> Angebote (@Model.Angebote.Count)
+                <a asp-controller="Angebote" asp-action="Neu" asp-route-kundeId="@Model.Id" class="btn-sws--ghost ms-auto">+ Neu</a>
+            </div>
+            @if (!Model.Angebote.Any()) {
+                <div class="empty-state" style="padding:1.5rem;"><i class="bi bi-file-earmark-text"></i>Noch keine Angebote</div>
+            } else {
+                <div class="table-responsive">
+                    <table class="sws-table sws-table--compact">
+                        <thead><tr><th>Nummer</th><th>Betreff</th><th>Datum</th><th>Gültig bis</th><th>Status</th><th></th></tr></thead>
+                        <tbody>
+                        @foreach (var a in Model.Angebote.OrderByDescending(x=>x.Angebotsdatum))
+                        {
+                            <tr>
+                                <td class="fw-mono fw-bold text-blau">@a.Angebotsnummer</td>
+                                <td class="text-muted">@a.Betreff</td>
+                                <td style="font-size:.8rem;">@a.Angebotsdatum.ToString("dd.MM.yyyy")</td>
+                                <td style="font-size:.8rem;" class="@(a.GueltigBis<DateTime.Today&&a.Status==AngebotStatus.Versendet?"text-danger":"text-muted")">@a.GueltigBis?.ToString("dd.MM.yyyy")</td>
+                                <td>@Html.Raw(ABadge(a.Status.ToString()))</td>
+                                <td><a asp-controller="Angebote" asp-action="Details" asp-route-id="@a.Id" class="btn-sws btn-sws--outline btn-sws--sm">Details</a></td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+
+        <!-- Rechnungen -->
+        <div class="sws-card">
+            <div class="sws-card__head sws-card__head--gruen">
+                <i class="bi bi-receipt"></i> Rechnungen (@Model.Rechnungen.Count)
+                <span class="ms-auto" style="font-size:.82rem;opacity:.9;">
+                    Gesamt bezahlt: @Model.Rechnungen.Where(r=>r.Status==RechnungStatus.Bezahlt).Sum(r=>r.Bruttobetrag).ToString("C")
+                </span>
+            </div>
+            @if (!Model.Rechnungen.Any()) {
+                <div class="empty-state" style="padding:1.5rem;"><i class="bi bi-receipt"></i>Noch keine Rechnungen</div>
+            } else {
+                <div class="table-responsive">
+                    <table class="sws-table sws-table--compact">
+                        <thead><tr><th>Nummer</th><th>Datum</th><th>Fällig am</th><th class="text-end">Betrag</th><th>Status</th><th></th></tr></thead>
+                        <tbody>
+                        @foreach (var r in Model.Rechnungen.OrderByDescending(x=>x.Rechnungsdatum))
+                        {
+                            <tr>
+                                <td class="fw-mono fw-bold" style="color:var(--gruen-dk);">@r.Rechnungsnummer</td>
+                                <td style="font-size:.8rem;">@r.Rechnungsdatum.ToString("dd.MM.yyyy")</td>
+                                <td style="font-size:.8rem;" class="@(r.IstUeberfaellig?"text-danger fw-bold":"text-muted")">@r.FaelligAm?.ToString("dd.MM.yyyy")</td>
+                                <td class="text-end fw-mono fw-bold" style="font-size:.875rem;">@r.Bruttobetrag.ToString("C")</td>
+                                <td>@Html.Raw(RBadge(r.Status.ToString()))</td>
+                                <td><a asp-controller="Rechnungen" asp-action="Details" asp-route-id="@r.Id" class="btn-sws btn-sws--outline btn-sws--sm">Details</a></td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+</div>

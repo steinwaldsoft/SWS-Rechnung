@@ -1,0 +1,132 @@
+@* _PosEditor.cshtml
+   ViewData["FieldPrefix"] : string                           – z.B. "Positionen"
+   ViewData["PosItems"]    : List<SWSRechnung.Models.PosEditorItem>
+*@
+@using SWSRechnung.Models
+@{
+    var prefix = ViewData["FieldPrefix"]?.ToString() ?? "Positionen";
+    var items  = ViewData["PosItems"] as List<PosEditorItem> ?? new List<PosEditorItem>();
+    var ic     = System.Globalization.CultureInfo.InvariantCulture;
+}
+
+<div id="posContainer">
+@for (int i = 0; i < items.Count; i++)
+{
+    var p = items[i];
+    <div class="pos-row">
+        <div class="d-flex align-items-start gap-2">
+            <div class="pos-nr-badge pos-nr mt-1">@(i+1)</div>
+            <div class="flex-grow-1">
+                <input type="hidden" name="@(prefix)[@i].Id"       value="@p.Id" />
+                <input type="hidden" name="@(prefix)[@i].Position"  class="pos-pos-field" value="@(i+1)" />
+                <div class="row g-2">
+                    <div class="col-12 col-md-5">
+                        <input type="text" name="@(prefix)[@i].Bezeichnung"
+                               class="form-control form-control-sm"
+                               placeholder="Bezeichnung *"
+                               value="@p.Bezeichnung" required />
+                    </div>
+                    <div class="col-6 col-md-2">
+                        <input type="number" name="@(prefix)[@i].Menge"
+                               class="form-control form-control-sm f-menge"
+                               placeholder="Menge"
+                               value="@p.Menge.ToString("F3", ic)"
+                               step="0.001" min="0" oninput="calcAllSums()" />
+                    </div>
+                    <div class="col-6 col-md-1">
+                        <input type="text" name="@(prefix)[@i].Einheit"
+                               class="form-control form-control-sm"
+                               placeholder="Einh."
+                               value="@p.Einheit" />
+                    </div>
+                    <div class="col-6 col-md-2">
+                        <input type="number" name="@(prefix)[@i].Einzelpreis"
+                               class="form-control form-control-sm f-ep"
+                               placeholder="Preis €"
+                               value="@p.Einzelpreis.ToString("F4", ic)"
+                               step="0.0001" min="0" oninput="calcAllSums()" />
+                    </div>
+                    <div class="col-4 col-md-1">
+                        <input type="number" name="@(prefix)[@i].Rabatt"
+                               class="form-control form-control-sm f-rabatt"
+                               placeholder="Rbt%"
+                               value="@p.Rabatt.ToString("F2", ic)"
+                               step="0.01" min="0" max="100" oninput="calcAllSums()" />
+                    </div>
+                    <div class="col-2 col-md-1 d-flex align-items-center justify-content-end">
+                        <button type="button" class="btn-sws btn-sws--sm"
+                                style="background:#e74c3c;"
+                                onclick="removePosition(this)" title="Entfernen">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                    <div class="col-12 col-md-11">
+                        <textarea name="@(prefix)[@i].Beschreibung"
+                                  class="form-control form-control-sm"
+                                  rows="1"
+                                  placeholder="Beschreibung (optional)">@p.Beschreibung</textarea>
+                    </div>
+                    <div class="col-12 col-md-1 d-flex align-items-end">
+                        <span class="pos-sum w-100">@p.Gesamtpreis.ToString("C")</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+</div>
+
+@* JS-Template für neue Positionen (Platzhalter __I__ = Index, __N__ = Nummer) *@
+<script id="posTmpl" type="text/template">
+<div class="pos-row">
+    <div class="d-flex align-items-start gap-2">
+        <div class="pos-nr-badge pos-nr mt-1">__N__</div>
+        <div class="flex-grow-1">
+            <input type="hidden" name="@(prefix)[__I__].Position" class="pos-pos-field" value="__N__" />
+            <div class="row g-2">
+                <div class="col-12 col-md-5">
+                    <input type="text" name="@(prefix)[__I__].Bezeichnung"
+                           class="form-control form-control-sm" placeholder="Bezeichnung *" required />
+                </div>
+                <div class="col-6 col-md-2">
+                    <input type="number" name="@(prefix)[__I__].Menge"
+                           class="form-control form-control-sm f-menge"
+                           value="1" step="0.001" min="0" oninput="calcAllSums()" />
+                </div>
+                <div class="col-6 col-md-1">
+                    <input type="text" name="@(prefix)[__I__].Einheit"
+                           class="form-control form-control-sm" value="Std." />
+                </div>
+                <div class="col-6 col-md-2">
+                    <input type="number" name="@(prefix)[__I__].Einzelpreis"
+                           class="form-control form-control-sm f-ep"
+                           step="0.0001" min="0" oninput="calcAllSums()" placeholder="0,00" />
+                </div>
+                <div class="col-4 col-md-1">
+                    <input type="number" name="@(prefix)[__I__].Rabatt"
+                           class="form-control form-control-sm f-rabatt"
+                           value="0" step="0.01" min="0" max="100" oninput="calcAllSums()" />
+                </div>
+                <div class="col-2 col-md-1 d-flex align-items-center justify-content-end">
+                    <button type="button" class="btn-sws btn-sws--sm"
+                            style="background:#e74c3c;" onclick="removePosition(this)">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+                <div class="col-12 col-md-11">
+                    <textarea name="@(prefix)[__I__].Beschreibung"
+                              class="form-control form-control-sm"
+                              rows="1" placeholder="Beschreibung (optional)"></textarea>
+                </div>
+                <div class="col-12 col-md-1 d-flex align-items-end">
+                    <span class="pos-sum w-100">0,00 €</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</script>
+
+<button type="button" class="btn-sws btn-sws--outline btn-sws--sm mt-2" onclick="addPosition()">
+    <i class="bi bi-plus-circle"></i> Position hinzufügen
+</button>

@@ -1,0 +1,178 @@
+@model SWSRechnung.Controllers.DashboardVm
+@{
+    ViewData["Title"] = "Dashboard";
+    string StatusBadge(string s) => s switch {
+        "Entwurf"      => "<span class='badge badge--entwurf'>Entwurf</span>",
+        "Versendet"    => "<span class='badge badge--versendet'>Versendet</span>",
+        "Angenommen"   => "<span class='badge badge--angenommen'>Angenommen</span>",
+        "Abgelehnt"    => "<span class='badge badge--abgelehnt'>Abgelehnt</span>",
+        "Abgelaufen"   => "<span class='badge badge--abgelaufen'>Abgelaufen</span>",
+        "Bezahlt"      => "<span class='badge badge--bezahlt'>Bezahlt</span>",
+        "Storniert"    => "<span class='badge badge--storniert'>Storniert</span>",
+        "Ueberfaellig" => "<span class='badge badge--ueberfaellig'>Überfällig</span>",
+        _              => $"<span class='badge badge--entwurf'>{s}</span>"
+    };
+}
+
+<div class="page-header">
+    <div>
+        <div class="page-header__title"><i class="bi bi-speedometer2"></i> Dashboard</div>
+        <div class="page-header__sub">steinwald.soft GmbH &mdash; Übersicht</div>
+    </div>
+    <div class="page-header__actions">
+        <a asp-controller="Kunden"    asp-action="Neu" class="btn-sws btn-sws--outline btn-sws--sm"><i class="bi bi-person-plus"></i> Neuer Kunde</a>
+        <a asp-controller="Angebote"  asp-action="Neu" class="btn-sws btn-sws--sm"><i class="bi bi-file-earmark-plus"></i> Angebot</a>
+        <a asp-controller="Rechnungen"asp-action="Neu" class="btn-sws btn-sws--gruen btn-sws--sm"><i class="bi bi-receipt"></i> Rechnung</a>
+    </div>
+</div>
+
+<!-- Stat Cards -->
+<div class="stat-cards">
+    <a asp-controller="Kunden" asp-action="Index" class="stat-card stat-card--blau">
+        <div class="stat-card__icon"><i class="bi bi-people-fill"></i></div>
+        <div>
+            <div class="stat-card__val">@Model.AnzahlKunden</div>
+            <div class="stat-card__label">Aktive Kunden</div>
+        </div>
+    </a>
+    <a asp-controller="Angebote" asp-action="Index" class="stat-card stat-card--silber">
+        <div class="stat-card__icon"><i class="bi bi-file-earmark-text"></i></div>
+        <div>
+            <div class="stat-card__val">@Model.OffeneAngebote</div>
+            <div class="stat-card__label">Offene Angebote</div>
+        </div>
+    </a>
+    <a asp-controller="Rechnungen" asp-action="Index" class="stat-card stat-card--gruen">
+        <div class="stat-card__icon"><i class="bi bi-receipt"></i></div>
+        <div>
+            <div class="stat-card__val">@Model.OffeneRechnungen</div>
+            <div class="stat-card__label">Offene Rechnungen</div>
+        </div>
+    </a>
+    <a asp-controller="Rechnungen" asp-action="Index" asp-route-status="4" class="stat-card stat-card--warn">
+        <div class="stat-card__icon"><i class="bi bi-exclamation-triangle-fill"></i></div>
+        <div>
+            <div class="stat-card__val">@Model.UeberfaelligeRechnungen</div>
+            <div class="stat-card__label">Überfällig</div>
+        </div>
+    </a>
+</div>
+
+<!-- Umsatz -->
+<div class="row g-3 mb-3">
+    <div class="col-sm-6">
+        <div class="sws-card">
+            <div class="sws-card__head"><i class="bi bi-graph-up-arrow"></i> Umsatz @DateTime.Now.ToString("MMMM yyyy")</div>
+            <div class="sws-card__body text-center py-4">
+                <div style="font-size:2.2rem;font-weight:800;color:var(--blau);">@Model.UmsatzMonat.ToString("C")</div>
+                <div class="text-muted" style="font-size:.8rem;">Bezahlte Rechnungen diesen Monat</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6">
+        <div class="sws-card">
+            <div class="sws-card__head sws-card__head--gruen"><i class="bi bi-wallet2"></i> Gesamtumsatz</div>
+            <div class="sws-card__body text-center py-4">
+                <div style="font-size:2.2rem;font-weight:800;color:var(--gruen-dk);">@Model.UmsatzGesamt.ToString("C")</div>
+                <div class="text-muted" style="font-size:.8rem;">Alle bezahlten Rechnungen</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Überfällige Rechnungen -->
+@if (Model.TopUeberfaellige.Any())
+{
+    <div class="sws-card mb-3">
+        <div class="sws-card__head" style="background:#c0392b;">
+            <i class="bi bi-exclamation-octagon-fill"></i> Überfällige Rechnungen
+        </div>
+        <div class="table-responsive">
+            <table class="sws-table">
+                <thead><tr>
+                    <th>Rechnungsnr.</th><th>Kunde</th><th>Fällig am</th><th>Verzug</th><th class="text-end">Betrag</th><th></th>
+                </tr></thead>
+                <tbody>
+                @foreach (var r in Model.TopUeberfaellige)
+                {
+                    var days = (DateTime.Today - r.FaelligAm!.Value).Days;
+                    <tr>
+                        <td class="fw-mono fw-bold text-blau">@r.Rechnungsnummer</td>
+                        <td>@r.Kunde?.Firmenname</td>
+                        <td class="text-danger fw-bold">@r.FaelligAm!.Value.ToString("dd.MM.yyyy")</td>
+                        <td><span class="badge badge--ueberfaellig">@days Tage</span></td>
+                        <td class="text-end fw-bold fw-mono">@r.Bruttobetrag.ToString("C")</td>
+                        <td class="text-end">
+                            <a asp-controller="Rechnungen" asp-action="Details" asp-route-id="@r.Id" class="btn-sws btn-sws--sm">Details</a>
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+
+<!-- Letzte Angebote & Rechnungen -->
+<div class="row g-3">
+    <div class="col-lg-6">
+        <div class="sws-card">
+            <div class="sws-card__head">
+                <i class="bi bi-file-earmark-text"></i> Letzte Angebote
+                <a asp-controller="Angebote" asp-action="Index" class="btn-sws--ghost ms-auto">Alle</a>
+            </div>
+            @if (!Model.LetzteAngebote.Any())
+            {
+                <div class="empty-state"><i class="bi bi-inbox"></i>Keine Angebote</div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="sws-table sws-table--compact">
+                        <tbody>
+                        @foreach (var a in Model.LetzteAngebote)
+                        {
+                            <tr>
+                                <td><a asp-controller="Angebote" asp-action="Details" asp-route-id="@a.Id" class="fw-bold text-blau fw-mono" style="text-decoration:none;">@a.Angebotsnummer</a></td>
+                                <td class="text-muted">@a.Kunde?.Firmenname</td>
+                                <td>@Html.Raw(StatusBadge(a.Status.ToString()))</td>
+                                <td class="text-muted" style="font-size:.78rem;">@a.Angebotsdatum.ToString("dd.MM.yy")</td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="sws-card">
+            <div class="sws-card__head sws-card__head--gruen">
+                <i class="bi bi-receipt"></i> Letzte Rechnungen
+                <a asp-controller="Rechnungen" asp-action="Index" class="btn-sws--ghost ms-auto">Alle</a>
+            </div>
+            @if (!Model.LetzteRechnungen.Any())
+            {
+                <div class="empty-state"><i class="bi bi-inbox"></i>Keine Rechnungen</div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="sws-table sws-table--compact">
+                        <tbody>
+                        @foreach (var r in Model.LetzteRechnungen)
+                        {
+                            <tr>
+                                <td><a asp-controller="Rechnungen" asp-action="Details" asp-route-id="@r.Id" class="fw-bold fw-mono" style="color:var(--gruen-dk);text-decoration:none;">@r.Rechnungsnummer</a></td>
+                                <td class="text-muted">@r.Kunde?.Firmenname</td>
+                                <td>@Html.Raw(StatusBadge(r.Status.ToString()))</td>
+                                <td class="fw-mono" style="font-size:.78rem;text-align:right;">@r.Bruttobetrag.ToString("C")</td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+</div>

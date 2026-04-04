@@ -1,0 +1,16 @@
+@* Renders the correct badge for Angebot or Rechnung status *@
+@{
+    var statusStr = ViewData["status"]?.ToString() ?? "";
+    var (cls, lbl) = statusStr switch {
+        "Entwurf"      => ("badge--entwurf",    "Entwurf"),
+        "Versendet"    => ("badge--versendet",   "Versendet"),
+        "Angenommen"   => ("badge--angenommen",  "Angenommen"),
+        "Abgelehnt"    => ("badge--abgelehnt",   "Abgelehnt"),
+        "Abgelaufen"   => ("badge--abgelaufen",  "Abgelaufen"),
+        "Bezahlt"      => ("badge--bezahlt",     "Bezahlt"),
+        "Storniert"    => ("badge--storniert",   "Storniert"),
+        "Ueberfaellig" => ("badge--ueberfaellig","Überfällig"),
+        _              => ("badge--entwurf",     statusStr)
+    };
+}
+<span class="badge @cls">@lbl</span>

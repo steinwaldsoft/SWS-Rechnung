@@ -1,0 +1,129 @@
+@model IEnumerable<SWSRechnung.Models.Rechnung>
+@using SWSRechnung.Models
+@{
+    ViewData["Title"] = "Rechnungen";
+    var jahre = ViewBag.Jahre as List<int> ?? new();
+    string SB(string s) => s switch {
+        "Entwurf"=>"<span class='badge badge--entwurf'>Entwurf</span>",
+        "Versendet"=>"<span class='badge badge--versendet'>Versendet</span>",
+        "Bezahlt"=>"<span class='badge badge--bezahlt'>Bezahlt</span>",
+        "Storniert"=>"<span class='badge badge--storniert'>Storniert</span>",
+        "Ueberfaellig"=>"<span class='badge badge--ueberfaellig'>Überfällig</span>",
+        _=>$"<span class='badge badge--entwurf'>{s}</span>"
+    };
+}
+
+<div class="page-header">
+    <div>
+        <div class="page-header__sub"><a asp-controller="Home" asp-action="Index">Dashboard</a> › Rechnungen</div>
+        <div class="page-header__title"><i class="bi bi-receipt"></i> Rechnungen</div>
+    </div>
+    <a asp-action="Neu" class="btn-sws btn-sws--gruen"><i class="bi bi-plus-circle"></i> Neue Rechnung</a>
+</div>
+
+<div class="filter-bar">
+    <form method="get" class="row g-2 align-items-end">
+        <div class="col-md-3">
+            <label class="form-label">Suche</label>
+            <input type="text" name="q" class="form-control" placeholder="Nummer, Betreff, Kunde …" value="@ViewBag.Q" />
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">Status</label>
+            <select name="status" class="form-select">
+                <option value="">Alle</option>
+                @foreach (RechnungStatus s in Enum.GetValues(typeof(RechnungStatus)))
+                {
+                    if ((int?)ViewBag.StatusFilter == (int)s)
+                    { <option value="@((int)s)" selected>@s</option> }
+                    else
+                    { <option value="@((int)s)">@s</option> }
+                }
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Kunde</label>
+            <select name="kundeId" class="form-select" asp-items="ViewBag.Kunden">
+                <option value="">Alle Kunden</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">Jahr</label>
+            <select name="jahr" class="form-select">
+                <option value="">Alle Jahre</option>
+                @foreach (var j in jahre)
+                {
+                    if (ViewBag.JahrFilter == j)
+                    { <option value="@j" selected>@j</option> }
+                    else
+                    { <option value="@j">@j</option> }
+                }
+            </select>
+        </div>
+        <div class="col-md-2 d-flex gap-2">
+            <button type="submit" class="btn-sws btn-sws--sm flex-grow-1"><i class="bi bi-search"></i></button>
+            <a asp-action="Index" class="btn-sws btn-sws--outline btn-sws--sm"><i class="bi bi-x"></i></a>
+        </div>
+    </form>
+</div>
+
+@{
+    var offen = Model.Where(r=>r.Status==RechnungStatus.Versendet||r.Status==RechnungStatus.Ueberfaellig).Sum(r=>r.Bruttobetrag);
+    var bezahlt = Model.Where(r=>r.Status==RechnungStatus.Bezahlt).Sum(r=>r.Bruttobetrag);
+}
+<div class="row g-2 mb-3">
+    <div class="col-6 col-md-3">
+        <div class="sws-card"><div class="sws-card__body text-center py-2">
+            <div style="font-size:.75rem;color:var(--text-muted);">Offen (gefiltert)</div>
+            <div class="fw-bold fw-mono" style="color:var(--blau);">@offen.ToString("C")</div>
+        </div></div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="sws-card"><div class="sws-card__body text-center py-2">
+            <div style="font-size:.75rem;color:var(--text-muted);">Bezahlt (gefiltert)</div>
+            <div class="fw-bold fw-mono" style="color:var(--gruen-dk);">@bezahlt.ToString("C")</div>
+        </div></div>
+    </div>
+</div>
+
+<div class="sws-card">
+    <div class="sws-card__head sws-card__head--gruen">
+        <i class="bi bi-receipt"></i> @Model.Count() Rechnungen
+    </div>
+    @if (!Model.Any()) {
+        <div class="empty-state"><i class="bi bi-receipt"></i>Keine Rechnungen gefunden.<br/><a asp-action="Neu" class="btn-sws btn-sws--gruen mt-3">Rechnung erstellen</a></div>
+    } else {
+        <div class="table-responsive">
+            <table class="sws-table">
+                <thead><tr>
+                    <th>Nummer</th><th>Kunde</th><th>Betreff</th><th>Datum</th><th>Fällig am</th><th class="text-end">Brutto</th><th>Status</th><th class="text-end">Aktionen</th>
+                </tr></thead>
+                <tbody>
+                @foreach (var r in Model)
+                {
+                    bool ueberfaellig = r.Status == RechnungStatus.Ueberfaellig;
+                    <tr class="@(ueberfaellig?"":"")">
+                        <td class="fw-mono fw-bold" style="color:var(--gruen-dk);">
+                            <a asp-action="Details" asp-route-id="@r.Id" style="color:var(--gruen-dk);text-decoration:none;">@r.Rechnungsnummer</a>
+                        </td>
+                        <td>@r.Kunde?.Firmenname</td>
+                        <td class="text-muted" style="font-size:.83rem;">@r.Betreff</td>
+                        <td style="font-size:.83rem;white-space:nowrap;">@r.Rechnungsdatum.ToString("dd.MM.yyyy")</td>
+                        <td style="font-size:.83rem;" class="@(ueberfaellig?"text-danger fw-bold":"text-muted")">
+                            @r.FaelligAm?.ToString("dd.MM.yyyy")
+                            @if (ueberfaellig && r.FaelligAm.HasValue) { <small class="ms-1">(@((DateTime.Today-r.FaelligAm.Value).Days)d)</small> }
+                        </td>
+                        <td class="text-end fw-mono fw-bold">@r.Bruttobetrag.ToString("C")</td>
+                        <td>@Html.Raw(SB(r.Status.ToString()))</td>
+                        <td class="text-end" style="white-space:nowrap;">
+                            <a asp-action="Details"   asp-route-id="@r.Id" class="btn-sws btn-sws--outline btn-sws--sm" title="Details"><i class="bi bi-eye"></i></a>
+                            <a asp-action="Word"      asp-route-id="@r.Id" class="btn-sws btn-sws--sm ms-1" style="background:#2B579A;"  target="_blank" title="Word (.docx)"><i class="bi bi-file-earmark-word"></i></a>
+                            <a asp-action="Zugferd"   asp-route-id="@r.Id" class="btn-sws btn-sws--sm ms-1" style="background:#7b2d8b;"  target="_blank" title="ZUGFeRD"><i class="bi bi-file-earmark-zip"></i></a>
+                            <a asp-action="XRechnung" asp-route-id="@r.Id" class="btn-sws btn-sws--sm ms-1" style="background:#1a6b3c;"  target="_blank" title="XRechnung XML"><i class="bi bi-filetype-xml"></i></a>
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
