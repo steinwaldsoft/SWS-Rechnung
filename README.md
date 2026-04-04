@@ -186,4 +186,4 @@ Präfixe und Startnummern sind unter **Einstellungen** konfigurierbar.
 
 ## Lizenz
 
-Proprietär – steinwald.soft GmbH
+Public Domain – keine Einschränkungen bei Nutzung, Änderung oder Weitergabe.
