@@ -10,7 +10,9 @@ namespace SWSRechnung.Controllers
     {
         private readonly AppDbContext _db;
         private readonly EinstellungenService _einst;
-        public HomeController(AppDbContext db, EinstellungenService einst) { _db = db; _einst = einst; }
+        private readonly IWebHostEnvironment _env;
+        public HomeController(AppDbContext db, EinstellungenService einst, IWebHostEnvironment env)
+        { _db = db; _einst = einst; _env = env; }
 
         public async Task<IActionResult> Index()
         {
@@ -54,20 +56,54 @@ namespace SWSRechnung.Controllers
         }
 
         [HttpPost, ValidateAntiForgeryToken]
-        public async Task<IActionResult> Einstellungen(IFormCollection form)
+        public async Task<IActionResult> Einstellungen(IFormCollection form, IFormFile? logoFile)
         {
-            var values = new Dictionary<string, string>();
+            // Logo löschen
+            if (form.ContainsKey("deleteLogo"))
+            {
+                var oldName = await _einst.GetAsync("LogoDateiname", "");
+                if (!string.IsNullOrEmpty(oldName))
+                {
+                    var oldPath = Path.Combine(_env.WebRootPath, "images", oldName);
+                    if (System.IO.File.Exists(oldPath))
+                        System.IO.File.Delete(oldPath);
+                }
+                await _einst.SaveAllAsync(new() { ["LogoDateiname"] = "" });
+                TempData["Success"] = "Logo entfernt.";
+                return RedirectToAction(nameof(Einstellungen));
+            }
 
-            // Formularfelder haben das Muster:  einstellungen[Schluessel]
+            // Logo hochladen
+            if (logoFile != null && logoFile.Length > 0)
+            {
+                var ext = Path.GetExtension(logoFile.FileName).ToLowerInvariant();
+                if (ext is ".jpg" or ".jpeg" or ".png")
+                {
+                    var oldName = await _einst.GetAsync("LogoDateiname", "");
+                    if (!string.IsNullOrEmpty(oldName) && oldName != "logo_firma" + ext)
+                    {
+                        var oldPath = Path.Combine(_env.WebRootPath, "images", oldName);
+                        if (System.IO.File.Exists(oldPath))
+                            System.IO.File.Delete(oldPath);
+                    }
+                    var fileName = "logo_firma" + ext;
+                    var savePath = Path.Combine(_env.WebRootPath, "images", fileName);
+                    using var stream = System.IO.File.Create(savePath);
+                    await logoFile.CopyToAsync(stream);
+                    await _einst.SaveAllAsync(new() { ["LogoDateiname"] = fileName });
+                }
+            }
+
+            // Textfelder speichern
+            var values = new Dictionary<string, string>();
             foreach (var key in form.Keys)
             {
                 if (key.StartsWith("einstellungen[") && key.EndsWith("]"))
                 {
-                    var schluessel = key[14..^1]; // alles zwischen [ und ]
+                    var schluessel = key[14..^1];
                     values[schluessel] = form[key].ToString();
                 }
             }
-
             if (values.Count > 0)
                 await _einst.SaveAllAsync(values);
 

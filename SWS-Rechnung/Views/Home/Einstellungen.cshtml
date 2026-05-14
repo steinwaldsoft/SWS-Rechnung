@@ -11,11 +11,35 @@
     </div>
 </div>
 
-<form asp-action="Einstellungen" method="post">
+<form asp-action="Einstellungen" method="post" enctype="multipart/form-data">
     @Html.AntiForgeryToken()
 
     <div class="row g-3">
         <div class="col-lg-6">
+            <div class="sws-card mb-3">
+                <div class="sws-card__head"><i class="bi bi-image"></i> Firmenlogo</div>
+                <div class="sws-card__body">
+                    @if (!string.IsNullOrEmpty(G("LogoDateiname")))
+                    {
+                        <div class="mb-3 d-flex align-items-center gap-3">
+                            <img src="~/images/@G("LogoDateiname")?t=@DateTime.Now.Ticks"
+                                 style="max-height:60px; max-width:220px; object-fit:contain;"
+                                 alt="Aktuelles Logo" />
+                            <button type="submit" name="deleteLogo" value="1"
+                                    class="btn btn-sm btn-outline-danger"
+                                    onclick="return confirm('Logo wirklich entfernen?')">
+                                <i class="bi bi-trash"></i> Logo entfernen
+                            </button>
+                        </div>
+                    }
+                    <div>
+                        <label class="form-label">@(string.IsNullOrEmpty(G("LogoDateiname")) ? "Logo hochladen" : "Neues Logo hochladen")</label>
+                        <input class="form-control" type="file" name="logoFile" accept=".jpg,.jpeg,.png" />
+                        <div class="form-text">JPG oder PNG. Wird in Angeboten und Rechnungen als Kopfzeilen-Logo verwendet.</div>
+                    </div>
+                </div>
+            </div>
+
             <div class="sws-card mb-3">
                 <div class="sws-card__head"><i class="bi bi-building"></i> Firmendaten</div>
                 <div class="sws-card__body">

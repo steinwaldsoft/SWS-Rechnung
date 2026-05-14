@@ -89,7 +89,7 @@ namespace SWSRechnung.Services
             var bold    = PdfFontFactory.CreateFont(StandardFonts.HELVETICA_BOLD);
             var regular = PdfFontFactory.CreateFont(StandardFonts.HELVETICA);
 
-            byte[]? logo = LoadLogo();
+            byte[]? logo = LoadLogo(e);
             pdfDoc.AddEventHandler(PdfDocumentEvent.END_PAGE,
                 new PageHandler(logo, e, bold, regular, pageSize));
 
@@ -292,14 +292,16 @@ namespace SWSRechnung.Services
                     {
                         var canvas2 = new PdfCanvas(
                             page.NewContentStreamBefore(), page.GetResources(), pdfDoc);
-                        float logoW = 170f;
-                        float logoH = logoW * 386f / 1545f;
-                        float logoX = (w - logoW) / 2f;
-                        float logoY = h - 10f - logoH;
                         var imgData = ImageDataFactory.Create(_logo);
+                        float targetH = 42.52f; // pts ≈ 1.5 cm
+                        float targetW = imgData.GetHeight() > 0
+                            ? targetH * imgData.GetWidth() / imgData.GetHeight()
+                            : 170f;
+                        float logoX = (w - targetW) / 2f;
+                        float logoY = h - 10f - targetH;
                         new iText.Layout.Canvas(canvas2,
-                                new Rectangle(logoX, logoY, logoW, logoH))
-                            .Add(new Image(imgData).SetWidth(logoW).SetHeight(logoH))
+                                new Rectangle(logoX, logoY, targetW, targetH))
+                            .Add(new Image(imgData).SetWidth(targetW).SetHeight(targetH))
                             .Close();
                         canvas2.Release();
                     }
@@ -395,12 +397,18 @@ namespace SWSRechnung.Services
             "</x:xmpmeta>\n" +
             "<?xpacket end=\"w\"?>";
 
-        private byte[]? LoadLogo()
+        private byte[]? LoadLogo(Dictionary<string,string> e)
         {
             try
             {
-                var path = System.IO.Path.Combine(_env.WebRootPath, "images", "logo_gmbh.jpg");
-                return File.Exists(path) ? File.ReadAllBytes(path) : null;
+                var customFile = e.G("LogoDateiname");
+                if (!string.IsNullOrEmpty(customFile))
+                {
+                    var p = System.IO.Path.Combine(_env.WebRootPath, "images", customFile);
+                    if (File.Exists(p)) return File.ReadAllBytes(p);
+                }
+                var fallback = System.IO.Path.Combine(_env.WebRootPath, "images", "logo_gmbh.jpg");
+                return File.Exists(fallback) ? File.ReadAllBytes(fallback) : null;
             }
             catch { return null; }
         }

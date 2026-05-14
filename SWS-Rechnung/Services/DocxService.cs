@@ -131,9 +131,9 @@ namespace SWSRechnung.Services
                 sp.Styles.Save();
 
                 // Header und Footer anlegen — IDs für SectionProperties
-                byte[]? logo = LoadLogo();
+                var logoInfo = LoadLogo(e);
                 var hdrPart  = main.AddNewPart<HeaderPart>();
-                FillHeader(hdrPart, logo, e);
+                FillHeader(hdrPart, logoInfo, e);
                 string hdrId = main.GetIdOfPart(hdrPart);
                 var ftrPart  = main.AddNewPart<FooterPart>();
                 FillFooter(ftrPart, e);
@@ -198,22 +198,31 @@ namespace SWSRechnung.Services
         // ── Kopfzeile: Logo zentriert ─────────────────────────────────
 
         private static void FillHeader(HeaderPart part,
-            byte[]? logo, Dictionary<string,string> e)
+            (byte[] Bytes, bool IsPng, int PixelW, int PixelH)? logoInfo,
+            Dictionary<string,string> e)
         {
             var header = new WP.Header();
 
-            if (logo != null)
+            if (logoInfo.HasValue)
             {
-                var imgPart = part.AddImagePart(ImagePartType.Jpeg);
+                var (logo, isPng, pixW, pixH) = logoInfo.Value;
+                var imgPart = isPng
+                    ? part.AddImagePart(ImagePartType.Png)
+                    : part.AddImagePart(ImagePartType.Jpeg);
                 imgPart.FeedData(new MemoryStream(logo));
                 string imgId = part.GetIdOfPart(imgPart);
+
+                long tH = LOGO_H; // 539650L EMU ≈ 1.5 cm
+                long tW = pixH > 0
+                    ? (long)((double)tH * pixW / pixH)
+                    : LOGO_W;
 
                 header.AppendChild(new WP.Paragraph(
                     new WP.ParagraphProperties(
                         new WP.Justification { Val = WP.JustificationValues.Center },
                         new WP.SpacingBetweenLines { Before = "0", After = "40" }
                     ),
-                    InlineImageRun(imgId, LOGO_W, LOGO_H, "Logo steinwald.soft")
+                    InlineImageRun(imgId, tW, tH, "Logo")
                 ));
             }
             else
@@ -747,14 +756,69 @@ namespace SWSRechnung.Services
         private static string Eur(decimal v) =>
             v.ToString("N2", DE) + "\u00A0\u20AC";
 
-        private byte[]? LoadLogo()
+        private (byte[] Bytes, bool IsPng, int PixelW, int PixelH)? LoadLogo(
+            Dictionary<string,string> e)
         {
             try
             {
-                var path = Path.Combine(_env.WebRootPath, "images", "logo_gmbh.jpg");
-                return File.Exists(path) ? File.ReadAllBytes(path) : null;
+                string? filename = null;
+                byte[]? bytes   = null;
+
+                var customFile = e.G("LogoDateiname");
+                if (!string.IsNullOrEmpty(customFile))
+                {
+                    var p = Path.Combine(_env.WebRootPath, "images", customFile);
+                    if (File.Exists(p)) { bytes = File.ReadAllBytes(p); filename = customFile; }
+                }
+                if (bytes == null)
+                {
+                    var p = Path.Combine(_env.WebRootPath, "images", "logo_gmbh.jpg");
+                    if (!File.Exists(p)) return null;
+                    bytes = File.ReadAllBytes(p);
+                    filename = "logo_gmbh.jpg";
+                }
+
+                var ext   = Path.GetExtension(filename!).ToLowerInvariant();
+                var isPng = ext == ".png";
+                var (w, h) = ReadImageSize(bytes);
+                return (bytes, isPng, w, h);
             }
             catch { return null; }
+        }
+
+        private static (int W, int H) ReadImageSize(byte[] data)
+        {
+            // PNG: 8-Byte-Signatur, dann IHDR: 4 len + 4 typ + 4 Breite (BE) + 4 Höhe (BE)
+            if (data.Length > 24
+                && data[0] == 0x89 && data[1] == 0x50
+                && data[2] == 0x4E && data[3] == 0x47)
+            {
+                int w = (data[16] << 24) | (data[17] << 16) | (data[18] << 8) | data[19];
+                int h = (data[20] << 24) | (data[21] << 16) | (data[22] << 8) | data[23];
+                return (w, h);
+            }
+            // JPEG: SOF-Marker parsen
+            if (data.Length > 4 && data[0] == 0xFF && data[1] == 0xD8)
+            {
+                int i = 2;
+                while (i + 8 < data.Length)
+                {
+                    if (data[i] != 0xFF) break;
+                    byte marker = data[i + 1];
+                    int segLen  = (data[i + 2] << 8) | data[i + 3];
+                    if ((marker >= 0xC0 && marker <= 0xC3)
+                        || (marker >= 0xC5 && marker <= 0xC7)
+                        || (marker >= 0xC9 && marker <= 0xCB)
+                        || (marker >= 0xCD && marker <= 0xCF))
+                    {
+                        int h = (data[i + 5] << 8) | data[i + 6];
+                        int w = (data[i + 7] << 8) | data[i + 8];
+                        return (w, h);
+                    }
+                    i += 2 + segLen;
+                }
+            }
+            return (0, 0);
         }
     }
 }
