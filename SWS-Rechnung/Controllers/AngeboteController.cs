@@ -45,11 +45,14 @@ namespace SWSRechnung.Controllers
         public async Task<IActionResult> Neu(int? kundeId)
         {
             await SetKundenSelectAsync(kundeId);
+            decimal mwst = decimal.TryParse(await _einst.GetAsync("MwStSatz","0"),
+                System.Globalization.NumberStyles.Any,
+                System.Globalization.CultureInfo.InvariantCulture, out var m) ? m : 0m;
             return View(new Angebot {
                 Angebotsnummer = await _nr.NaechsteAngebotsnummerAsync(),
                 Angebotsdatum  = DateTime.Today,
                 GueltigBis     = DateTime.Today.AddDays(30),
-                MwStSatz       = 0m,
+                MwStSatz       = mwst,
                 KundeId        = kundeId ?? 0,
                 Einleitung     = await _einst.GetAsync("AngebotEinleitung"),
                 Schlusstext    = await _einst.GetAsync("AngebotSchlusstext"),

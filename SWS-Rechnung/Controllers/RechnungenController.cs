@@ -60,11 +60,14 @@ namespace SWSRechnung.Controllers
         {
             await SetKundenSelectAsync(kundeId);
             int ziel = int.TryParse(await _einst.GetAsync("Zahlungsziel","14"), out int z) ? z : 14;
+            decimal mwst = decimal.TryParse(await _einst.GetAsync("MwStSatz","0"),
+                System.Globalization.NumberStyles.Any,
+                System.Globalization.CultureInfo.InvariantCulture, out var m) ? m : 0m;
             return View(new Rechnung {
                 Rechnungsnummer = await _nr.NaechsteRechnungsnummerAsync(),
                 Rechnungsdatum  = DateTime.Today,
                 FaelligAm       = DateTime.Today.AddDays(ziel),
-                MwStSatz        = 0m,
+                MwStSatz        = mwst,
                 KundeId         = kundeId ?? 0,
                 Einleitung      = await _einst.GetAsync("RechnungEinleitung"),
                 Schlusstext     = await _einst.GetAsync("RechnungSchlusstext"),
