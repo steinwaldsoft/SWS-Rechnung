@@ -122,7 +122,7 @@ namespace SWSRechnung.Controllers
                 AngebotId     = a.Id,
                 Betreff       = a.Betreff,
                 Rechnungsdatum= DateTime.Today,
-                FaelligAm     = DateTime.Today.AddDays(14),
+                FaelligAm     = DateTime.Today.AddDays(int.TryParse(await _einst.GetAsync("Zahlungsziel","14"), out var z) ? z : 14),
                 MwStSatz      = a.MwStSatz,
                 Einleitung    = await _einst.GetAsync("RechnungEinleitung"),
                 Schlusstext   = await _einst.GetAsync("RechnungSchlusstext"),
