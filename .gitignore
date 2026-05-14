@@ -361,3 +361,6 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+SWS-Rechnung/sws_rechnung.db-wal
+SWS-Rechnung/sws_rechnung.db-shm
+.claude/settings.local.json
