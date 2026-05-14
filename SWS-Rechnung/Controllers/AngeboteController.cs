@@ -48,10 +48,11 @@ namespace SWSRechnung.Controllers
             decimal mwst = decimal.TryParse(await _einst.GetAsync("MwStSatz","0"),
                 System.Globalization.NumberStyles.Any,
                 System.Globalization.CultureInfo.InvariantCulture, out var m) ? m : 0m;
+            int gueltig = int.TryParse(await _einst.GetAsync("AngebotGueltigkeitTage","30"), out var g) ? g : 30;
             return View(new Angebot {
                 Angebotsnummer = await _nr.NaechsteAngebotsnummerAsync(),
                 Angebotsdatum  = DateTime.Today,
-                GueltigBis     = DateTime.Today.AddDays(30),
+                GueltigBis     = DateTime.Today.AddDays(gueltig),
                 MwStSatz       = mwst,
                 KundeId        = kundeId ?? 0,
                 Einleitung     = await _einst.GetAsync("AngebotEinleitung"),

@@ -131,8 +131,12 @@
                             <input class="form-control fw-mono" type="number" min="1" name="einstellungen[RechnungNaechsteNr]" value="@G("RechnungNaechsteNr")" />
                         </div>
                         <div class="col-6">
-                            <label class="form-label">Standard-Zahlungsziel (Tage)</label>
+                            <label class="form-label">Standard-Zahlungsziel Rechnung (Tage)</label>
                             <input class="form-control" type="number" min="0" name="einstellungen[Zahlungsziel]" value="@G("Zahlungsziel")" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Standard-Gültigkeit Angebot (Tage)</label>
+                            <input class="form-control" type="number" min="0" name="einstellungen[AngebotGueltigkeitTage]" value="@G("AngebotGueltigkeitTage")" />
                         </div>
                         <div class="col-6">
                             <label class="form-label">Standard-MwSt-Satz (%)</label>
